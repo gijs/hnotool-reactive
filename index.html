@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Reactive HNO Tool</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Tangle -->
+    <script type="text/javascript" src="js/Tangle.js"></script>
+    
+    <link rel="stylesheet" href="css/bootstrap.min.css" type="text/css" media="screen" title="no title" charset="utf-8">
+    <link rel="stylesheet" href="css/bootstrap-responsive.min.css" type="text/css" media="screen" title="no title" charset="utf-8">
+    
+
+    <!-- TangleKit (optional) -->
+    <link rel="stylesheet" href="TangleKit/TangleKit.css" type="text/css">
+    <script type="text/javascript" src="TangleKit/mootools.js"></script>
+    <script type="text/javascript" src="TangleKit/sprintf.js"></script>
+    <script type="text/javascript" src="TangleKit/BVTouchable.js"></script>
+    <script type="text/javascript" src="TangleKit/TangleKit.js"></script>
+
+    <script type="text/javascript" src="js/jquery-1.8.0.js"></script>
+    <script type="text/javascript" src="js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="js/d3.v2.js"></script>
+
+    <!-- Custom -->
+    <script type="text/javascript">
+
+        d3.xml("svg/itriolering.svg", "image/svg+xml", function(xml) {
+            
+            var importedNode = document.importNode(xml.documentElement, true);
+            g = d3.select("#it_riolering_graphic").node().appendChild(importedNode);
+            
+            window.tmv = d3.select("#tmv");
+            window.original_tmv_y = window.tmv.attr("y");
+            
+            window.ghg = d3.select("#ghg");
+            window.original_ghg_y = window.ghg.attr("y");
+            
+            setUpTangle();
+        });
+
+
+        function setUpTangle () {
+
+            var rows;
+            
+            d3.csv("afvoer.csv", function(data) {
+                console.log(data);
+                rows = data;
+            });
+
+            var totaal_te_bergen = 0;
+            var algemeen_element = document.getElementById("algemeen_element");
+
+            var algemeen = new Tangle(algemeen_element, {
+                initialize: function () {
+                    this.bvo = 1;
+                    this.tvo = 1;
+                    this.ac = .3;
+                    this.rekenfactor = 1.52;
+                },
+                update: function () {
+                    this.totaal_te_bergen = this.tvo * this.bvo * this.rekenfactor;
+                    totaal_te_bergen = this.totaal_te_bergen;
+                }
+            });
+
+            var it_riolering_element = document.getElementById("it_riolering_element");
+        
+            var it_riolering = new Tangle(it_riolering_element, {
+                initialize: function() {
+                    this.diameter = 1;
+                    this.is = 1;
+                    this.ghg = 1;
+                    this.hmn = 1;
+                    this.tmn = 1;
+                },
+                update: function() {
+                    // Set toekomstig maaiveldniveau
+                    window.tmv.attr("y", parseInt(window.original_tmv_y) + this.tmn * 10);
+                    window.ghg.attr("y", parseInt(window.original_ghg_y) - this.ghg * 10);
+                    this.totaal_benodigde_lengte = totaal_te_bergen * this.diameter * this.is * this.ghg * this.hmn * this.tmn;
+                }
+            });
+            
+            
+            var ondergrondse_iv_element = document.getElementById("ondergrondse_iv_element");
+            
+            var ondergrondse_iv = new Tangle(ondergrondse_iv_element, {
+               initialize: function() {
+                   this.hoogte = 1;
+                   this.is = 1;
+                   this.ghg = 1;
+                   this.hmn = 1;
+                   this.tmn = 1;
+                   this.p = 1;
+               },
+               update: function() {
+                   this.totaal_benodigde_oppervlakte = this.hoogte * this.is * this.ghg * this.hmn * this.tmn * this.p * totaal_te_bergen;
+               }
+            });
+
+        }
+    </script>
+</head>
+
+<body>
+    <div id="container-fluid">
+        <h2>HNO Tool</h2>
+        
+        <hr size="1" noshade/>
+
+        <div class="alert alert-info">
+          <strong>Let op!</strong>
+          De formules in deze proof-of-concept versie kloppen niet...
+        </div>
+
+        <hr size="1" noshade/>
+        
+        <p><em>Met de gegevens die u hier invoert wordt de hoeveelheid water berekend die op de locatie dient te worden vastgehouden. Deze hoeveelheid is berekend voor een T=10 neerslagsituatie. Vanwege de verwachte klimaatveranderingen is hier 10% aan toegevoegd.</em></p>
+
+        <h3>Algemene gegevens</h3>
+        <p id="algemeen_element">
+            Met een bestaand verhard oppervlak van <span data-var="bvo" class="TKAdjustableNumber" data-min="1" data-max="100"> vierkante meter</span>, een toekomstig verhard oppervlak van <span data-var="tvo" class="TKAdjustableNumber" data-min="1" data-max="200"> vierkante meter</span> en een afvoercoëfficiënt van <span data-var="ac" class="TKAdjustableNumber" data-format="%.2f" data-min="1" data-max="5"> l/s/h</span>, is uw te bergen en/of infiltreren hoeveelheid hemelwater (T10+10%) <strong><span data-var="totaal_te_bergen"></span> m3</strong>.
+        </p>
+
+        <hr size="1" noshade/>
+        
+        <h3>IT Riolering</h3>
+        <p id="it_riolering_graphic"></p>
+        
+        <p id="it_riolering_element">
+            Met een diameter van <span data-var="diameter" class="TKAdjustableNumber" data-format="%.2f" data-min="1" data-max="5"> m</span>, een infiltratiesnelheid van <span data-var="is" class="TKAdjustableNumber" data-format="%.2f" data-min="1" data-max="5"> m/dag</span>, een gemiddelde hoogste grondwaterstand van <span data-var="ghg" class="TKAdjustableNumber" data-format="%.2f" data-min="1" data-max="15"> m+NAP</span>, een huidig maaiveldniveau van <span data-var="hmn" class="TKAdjustableNumber" data-format="%.2f" data-min="1" data-max="5"> m+NAP</span> en een toekomstig maaiveldniveau van <span data-var="tmn" class="TKAdjustableNumber" data-format="%.2f" data-min="1" data-max="5"> l/s/h</span> komt u uit op een lengte van <strong><span data-var="totaal_benodigde_lengte"></span> m</strong>.
+        </p>
+
+        <hr size="1" noshade/>
+
+        <h3>Ondergrondse infiltratievoorziening</h3>
+        <p id="ondergrondse_iv_element">
+            Met een hoogte van <span data-var="hoogte" class="TKAdjustableNumber" data-format="%.2f" data-min="1" data-max="5"> m</span>, een infiltratiesnelheid van <span data-var="is" class="TKAdjustableNumber" data-format="%.2f" data-min="1" data-max="5"> m/dag</span>, een gemiddelde hoogste grondwaterstand van <span data-var="ghg" class="TKAdjustableNumber" data-format="%.2f" data-min="1" data-max="5"> m+NAP</span>, een huidig maaiveldniveau van <span data-var="hmn" class="TKAdjustableNumber" data-format="%.2f" data-min="1" data-max="5"> m+NAP</span>, een toekomstig maaiveldniveau van <span data-var="tmn" class="TKAdjustableNumber" data-format="%.2f" data-min="1" data-max="5"> m+NAP</span> en een porositeit van <span data-var="p" class="TKAdjustableNumber" data-format="%.2f" data-min="1" data-max="5"> %</span> is uw benodigde oppervlakte <strong><span data-var="totaal_benodigde_oppervlakte"></span> m2</strong>.
+        </p>
+        
+        <hr size="1" noshade/>
+    </div>
+</body>
+</html>
